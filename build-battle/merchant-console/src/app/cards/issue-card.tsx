@@ -169,6 +169,9 @@ export function IssueCard({ merchants }: { merchants: MerchantOption[] }) {
         setErrors({
           ...(payload?.fields ?? {}),
           ...(limit === null ? { limit: limitMessage } : {}),
+          ...(limit !== null && limit > MAX_LIMIT
+            ? { limit: `The limit cannot exceed ${formatMoney(MAX_LIMIT, currency)}.` }
+            : {}),
         })
         setFormError(
           payload?.error ?? "The card was not issued. Check the highlighted fields.",
