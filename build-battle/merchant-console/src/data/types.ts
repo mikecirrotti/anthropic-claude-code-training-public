@@ -11,6 +11,16 @@ export type DisputeStatus = "needs_response" | "under_review" | "won" | "lost"
 
 export type PayoutStatus = "paid" | "in_transit" | "pending"
 
+/** active and frozen can swap; either can be cancelled; cancelled is terminal. */
+export type CardStatus = "active" | "frozen" | "cancelled"
+
+export type CardCategory =
+  | "software"
+  | "advertising"
+  | "contractors"
+  | "travel"
+  | "general"
+
 export interface Merchant {
   id: string
   name: string
@@ -69,6 +79,29 @@ export interface Payout {
   currency: Currency
   status: PayoutStatus
   paymentIds: string[]
+}
+
+/**
+ * A virtual card. There is deliberately no field for the full number: it is
+ * returned once, by the issue response, and never stored. The record keeps the
+ * last four and an opaque reference.
+ */
+export interface Card {
+  id: string
+  merchantId: string
+  nickname: string
+  /** Spend limit in integer minor units. Never a float. */
+  limit: number
+  currency: Currency
+  last4: string
+  /** Opaque identifier for the generated number. Not derived from it. */
+  reference: string
+  status: CardStatus
+  category: CardCategory | null
+  /** Spend so far, integer minor units, in the card's currency. */
+  spent: number
+  /** ISO 8601, always UTC. */
+  createdAt: string
 }
 
 export interface PaymentFilters {
