@@ -1,3 +1,4 @@
+import { listCards } from "@/data/queries"
 import { store } from "@/data/store"
 import { issueCard, validateIssueRequest } from "@/lib/card"
 import { NextResponse } from "next/server"
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic"
 
 /** Every issued card, newest first. Records carry the last four, never a number. */
 export function GET() {
-  const rows = [...store.cards].reverse()
+  const rows = listCards()
   return NextResponse.json({ rows, total: rows.length })
 }
 

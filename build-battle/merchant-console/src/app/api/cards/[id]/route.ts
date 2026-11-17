@@ -1,3 +1,4 @@
+import { cardById } from "@/data/queries"
 import { store } from "@/data/store"
 import { applyTransition, isCardStatus } from "@/lib/card"
 import { NextResponse } from "next/server"
@@ -9,7 +10,7 @@ type Context = { params: Promise<{ id: string }> }
 
 export async function GET(_request: Request, { params }: Context) {
   const { id } = await params
-  const card = store.cards.find((c) => c.id === id)
+  const card = cardById(id)
   if (!card) return errorResponse(404, "Card not found.")
   return NextResponse.json({ card })
 }

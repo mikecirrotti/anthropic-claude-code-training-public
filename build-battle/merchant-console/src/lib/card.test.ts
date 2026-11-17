@@ -354,7 +354,17 @@ describe("card-meta", () => {
   it("stays free of the number generator, so client code can import it", async () => {
     const meta = await import("./card-meta")
     expect(Object.keys(meta).sort()).toEqual(
-      ["CARD_CATEGORIES", "CARD_CURRENCIES", "MAX_LIMIT", "MAX_NICKNAME_LENGTH", "maskCardNumber"].sort(),
+      [
+        "AMBER_PERCENT",
+        "CARD_CATEGORIES",
+        "CARD_CURRENCIES",
+        "CATEGORY_LABELS",
+        "MAX_LIMIT",
+        "MAX_NICKNAME_LENGTH",
+        "isNearLimit",
+        "maskCardNumber",
+        "spendPercent",
+      ].sort(),
     )
   })
 })

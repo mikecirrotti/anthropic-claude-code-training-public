@@ -1,6 +1,6 @@
 import { merchantById } from "./merchants"
 import { store } from "./store"
-import { Payment, PaymentFilters, PaymentStatus } from "./types"
+import { Card, Payment, PaymentFilters, PaymentStatus } from "./types"
 
 const STATUSES: readonly (PaymentStatus | "all")[] = [
   "all",
@@ -107,6 +107,15 @@ export function queryPayments(filters: PaymentFilters) {
 
 export function paymentById(id: string) {
   return store.payments.find((p) => p.id === id) ?? null
+}
+
+/** Issued cards, newest first. Records carry the last four, never a number. */
+export function listCards(): Card[] {
+  return [...store.cards].reverse()
+}
+
+export function cardById(id: string): Card | null {
+  return store.cards.find((card) => card.id === id) ?? null
 }
 
 export function refundsForPayment(paymentId: string) {
