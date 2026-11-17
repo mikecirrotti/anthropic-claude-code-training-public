@@ -5,9 +5,10 @@ import { formatMoney } from "./money"
 /**
  * CSV export for the payments table.
  *
- * The column set is fixed. Ops has asked for control over it — that is
- * NWP-101 — but today everyone gets every column, including the card
- * last four, whether or not the file is going to a merchant.
+ * Ops chooses the columns (NWP-101). The card last four is opt-in: the
+ * default set leaves it out, so a file bound for a merchant needs no cleanup.
+ * Column names arrive from the client, so parseExportColumns checks them
+ * against EXPORT_COLUMNS before they reach toCsv.
  */
 
 export const EXPORT_COLUMNS = [
