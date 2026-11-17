@@ -41,7 +41,7 @@ As found on `main` (da19f40), before this work. Nothing card-related existed.
 | Reject a missing merchant, a limit of zero or less, a limit above 5,000,000 minor units, and a currency outside USD, EUR, GBP | NWP-201 core criteria | The server trusts the client |
 | Storage is UTC; display converts to the merchant's timezone | `CLAUDE.md` convention 2 | Wrong created date |
 
-**Decisions:** the server accepts any of USD, EUR, GBP, as the ticket says. The form defaults the currency to the merchant's own and warns on a mismatch. A nickname is required (up to 60 characters). Categories are software, advertising, contractors, travel and general. A reference is an opaque `ref_` plus 16 random characters, unrelated to the number.
+**Decisions:** the server accepts only USD, EUR and GBP, as the ticket says, and `validateIssueRequest` in `src/lib/card.ts` also rejects a currency that is not the chosen merchant's own (`currency` in `src/data/merchants.ts`), because a card spends against that merchant's balance. The form defaults the currency to the merchant's own and flags a mismatch before it is sent. A nickname is required (up to 60 characters). Categories are software, advertising, contractors, travel and general. A reference is an opaque `ref_` plus 16 random characters, unrelated to the number.
 
 ## Approach
 

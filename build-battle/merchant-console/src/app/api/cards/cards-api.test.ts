@@ -102,6 +102,7 @@ describe("POST /api/cards", () => {
       ["fractional limit", { ...valid, limit: 250.5 }],
       ["string limit", { ...valid, limit: "$250.00" }],
       ["currency outside the list", { ...valid, currency: "JPY" }],
+      ["currency that is not the merchant's own", { ...valid, currency: "EUR" }],
       ["missing nickname", { ...valid, nickname: "" }],
     ]
     for (const [label, body] of cases) {

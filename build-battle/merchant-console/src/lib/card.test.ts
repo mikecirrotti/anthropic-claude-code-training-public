@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { CardStatus } from "@/data/types"
+import { merchantById } from "@/data/merchants"
 import {
   CARD_CURRENCIES,
   CARD_TRANSITIONS,
@@ -189,14 +190,34 @@ describe("validateIssueRequest", () => {
     for (const currency of ["JPY", "usd", "", "US", null, 840]) {
       expect(validateIssueRequest({ ...valid, currency }).ok, String(currency)).toBe(false)
     }
+    // Each listed currency is accepted for a merchant that settles in it.
+    const merchantFor = { USD: "mch_01", GBP: "mch_04", EUR: "mch_05" } as const
     for (const currency of CARD_CURRENCIES) {
-      expect(validateIssueRequest({ ...valid, currency }).ok).toBe(true)
+      const merchantId = merchantFor[currency]
+      expect(merchantById(merchantId)?.currency).toBe(currency)
+      expect(validateIssueRequest({ ...valid, merchantId, currency }).ok).toBe(true)
     }
   })
 
-  it("accepts a currency that differs from the merchant's own", () => {
-    // mch_01 is a USD merchant. The server accepts it; the form only warns.
-    expect(validateIssueRequest({ ...valid, currency: "EUR" }).ok).toBe(true)
+  it("rejects a currency that differs from the merchant's own", () => {
+    // mch_01 is a USD merchant; EUR and GBP are on the list but do not match.
+    for (const currency of ["EUR", "GBP"]) {
+      const result = validateIssueRequest({ ...valid, currency })
+      expect(result.ok, currency).toBe(false)
+      if (!result.ok) expect(result.errors.currency).toContain("USD")
+    }
+  })
+
+  it("accepts each merchant's own currency", () => {
+    for (const merchant of [merchantById("mch_01"), merchantById("mch_04"), merchantById("mch_05")]) {
+      expect(merchant).toBeDefined()
+      const result = validateIssueRequest({
+        ...valid,
+        merchantId: merchant!.id,
+        currency: merchant!.currency,
+      })
+      expect(result.ok, merchant!.id).toBe(true)
+    }
   })
 
   it("requires a nickname and caps its length", () => {

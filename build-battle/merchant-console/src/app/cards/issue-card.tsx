@@ -121,8 +121,8 @@ export function IssueCard({ merchants }: { merchants: MerchantOption[] }) {
     setMerchantId(id)
     clearError("merchantId")
     const picked = merchants.find((m) => m.id === id)
-    // Default to the merchant's own currency. The server accepts any of the
-    // three, so a different choice is warned about, not blocked.
+    // Default to the merchant's own currency. The server requires it to match,
+    // so a different choice is flagged here before it is sent.
     if (picked) setCurrency(picked.currency)
   }
 
@@ -391,7 +391,7 @@ export function IssueCard({ merchants }: { merchants: MerchantOption[] }) {
                     }
                   >
                     {currencyMismatch
-                      ? `${merchant.name} settles in ${merchant.currency}. This card will be issued in ${currency}.`
+                      ? `${merchant.name} settles in ${merchant.currency}. Cards must be issued in ${merchant.currency}.`
                       : "Defaults to the merchant's own currency."}
                   </p>
                 )}

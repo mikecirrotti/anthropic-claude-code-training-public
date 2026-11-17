@@ -192,8 +192,9 @@ export function validateIssueRequest(input: unknown): IssueValidation {
   }
 
   const merchantId = typeof body.merchantId === "string" ? body.merchantId : ""
+  const merchant = merchantId ? merchantById(merchantId) : undefined
   if (!merchantId) errors.merchantId = "Choose a merchant."
-  else if (!merchantById(merchantId)) errors.merchantId = "Unknown merchant."
+  else if (!merchant) errors.merchantId = "Unknown merchant."
 
   const limit = body.limit
   if (limit === undefined || limit === null) {
@@ -211,6 +212,10 @@ export function validateIssueRequest(input: unknown): IssueValidation {
     errors.currency = "Choose a currency."
   } else if (!CARD_CURRENCIES.includes(currency as Currency)) {
     errors.currency = `Currency must be one of ${CARD_CURRENCIES.join(", ")}.`
+  } else if (merchant && currency !== merchant.currency) {
+    // A card spends against the merchant's own balance, so it is issued in the
+    // merchant's currency. The form defaults to it; the server enforces it.
+    errors.currency = `${merchant.name} settles in ${merchant.currency}. Issue this card in ${merchant.currency}.`
   }
 
   let category: CardCategory | null = null
