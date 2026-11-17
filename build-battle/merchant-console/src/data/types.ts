@@ -81,6 +81,14 @@ export interface Payout {
   paymentIds: string[]
 }
 
+/** One entry in a card's history. `from` is null for the issue event. */
+export interface CardEvent {
+  /** ISO 8601, always UTC. */
+  at: string
+  from: CardStatus | null
+  to: CardStatus
+}
+
 /**
  * A virtual card. There is deliberately no field for the full number: it is
  * returned once, by the issue response, and never stored. The record keeps the
@@ -102,6 +110,8 @@ export interface Card {
   spent: number
   /** ISO 8601, always UTC. */
   createdAt: string
+  /** Issue and every status change, oldest first. */
+  events: CardEvent[]
 }
 
 export interface PaymentFilters {

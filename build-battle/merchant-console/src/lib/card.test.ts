@@ -6,8 +6,10 @@ import {
   IssueCardInput,
   MAX_LIMIT,
   TEST_BIN,
+  applyTransition,
   canTransition,
   generateCardNumber,
+  isCardStatus,
   isValidLuhn,
   issueCard,
   luhnCheckDigit,
@@ -268,5 +270,91 @@ describe("issueCard", () => {
     expect(a.card.id).not.toBe(b.card.id)
     expect(a.card.reference).not.toBe(b.card.reference)
     expect(a.number).not.toBe(b.number)
+  })
+})
+
+describe("isCardStatus", () => {
+  it("accepts only the three statuses, not inherited object keys", () => {
+    for (const ok of ["active", "frozen", "cancelled"]) {
+      expect(isCardStatus(ok)).toBe(true)
+    }
+    for (const bad of ["toString", "constructor", "__proto__", "hasOwnProperty", "ACTIVE", ""]) {
+      expect(isCardStatus(bad), bad).toBe(false)
+    }
+  })
+
+  it("keeps a prototype name out of the state machine", () => {
+    expect(transitionStatus("active", "constructor")).toEqual({
+      ok: false,
+      error: "Unknown card status.",
+    })
+  })
+})
+
+describe("transition messages", () => {
+  it("reads naturally for an illegal change", () => {
+    expect(transitionStatus("frozen", "frozen")).toEqual({
+      ok: false,
+      error: "Cannot change a card from frozen to frozen.",
+    })
+  })
+})
+
+describe("card history", () => {
+  const issuedAt = new Date("2026-08-13T10:00:00.000Z")
+  const input: IssueCardInput = {
+    nickname: "Ad spend",
+    merchantId: "mch_01",
+    limit: 25000,
+    currency: "USD",
+    category: null,
+  }
+
+  it("records the issue as the first event, in UTC", () => {
+    const { card } = issueCard(input, { random: seeded(5), now: issuedAt })
+    expect(card.events).toEqual([
+      { at: "2026-08-13T10:00:00.000Z", from: null, to: "active" },
+    ])
+  })
+
+  it("appends one event per successful change and leaves the original alone", () => {
+    const { card } = issueCard(input, { random: seeded(5), now: issuedAt })
+    const frozen = applyTransition(card, "frozen", new Date("2026-08-14T09:00:00.000Z"))
+    expect(frozen.ok).toBe(true)
+    if (!frozen.ok) return
+
+    expect(frozen.card.status).toBe("frozen")
+    expect(frozen.card.events).toEqual([
+      { at: "2026-08-13T10:00:00.000Z", from: null, to: "active" },
+      { at: "2026-08-14T09:00:00.000Z", from: "active", to: "frozen" },
+    ])
+    expect(card.status).toBe("active")
+    expect(card.events).toHaveLength(1)
+  })
+
+  it("does not change or record anything for a refused change", () => {
+    const { card } = issueCard(input, { random: seeded(5), now: issuedAt })
+    const cancelled = applyTransition(card, "cancelled")
+    expect(cancelled.ok).toBe(true)
+    if (!cancelled.ok) return
+
+    const back = applyTransition(cancelled.card, "active")
+    expect(back.ok).toBe(false)
+    expect(cancelled.card.events).toHaveLength(2)
+  })
+
+  it("rejects a status that is not on the list", () => {
+    const { card } = issueCard(input, { random: seeded(5), now: issuedAt })
+    expect(applyTransition(card, "closed").ok).toBe(false)
+    expect(applyTransition(card, undefined).ok).toBe(false)
+  })
+})
+
+describe("card-meta", () => {
+  it("stays free of the number generator, so client code can import it", async () => {
+    const meta = await import("./card-meta")
+    expect(Object.keys(meta).sort()).toEqual(
+      ["CARD_CATEGORIES", "CARD_CURRENCIES", "MAX_LIMIT", "MAX_NICKNAME_LENGTH", "maskCardNumber"].sort(),
+    )
   })
 })

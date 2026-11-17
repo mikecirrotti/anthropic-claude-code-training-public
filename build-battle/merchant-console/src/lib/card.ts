@@ -1,5 +1,20 @@
 import { merchantById } from "@/data/merchants"
 import { Card, CardCategory, CardStatus, Currency } from "@/data/types"
+import {
+  CARD_CATEGORIES,
+  CARD_CURRENCIES,
+  MAX_LIMIT,
+  MAX_NICKNAME_LENGTH,
+} from "./card-meta"
+
+// Client code imports these from ./card-meta, which has no generator in it.
+export {
+  CARD_CATEGORIES,
+  CARD_CURRENCIES,
+  MAX_LIMIT,
+  MAX_NICKNAME_LENGTH,
+  maskCardNumber,
+} from "./card-meta"
 
 /**
  * Virtual card logic: number generation, request validation, and the status
@@ -14,21 +29,6 @@ import { Card, CardCategory, CardStatus, Currency } from "@/data/types"
 export const TEST_BIN = "4242"
 
 const NUMBER_LENGTH = 16
-
-/** Largest spend limit, in minor units. */
-export const MAX_LIMIT = 5_000_000
-
-export const MAX_NICKNAME_LENGTH = 60
-
-export const CARD_CURRENCIES: readonly Currency[] = ["USD", "EUR", "GBP"]
-
-export const CARD_CATEGORIES: readonly CardCategory[] = [
-  "software",
-  "advertising",
-  "contractors",
-  "travel",
-  "general",
-]
 
 // ---------------------------------------------------------------------------
 // Numbers
@@ -68,11 +68,6 @@ export function generateCardNumber(random: () => number = Math.random): string {
   return payload + luhnCheckDigit(payload)
 }
 
-/** How a stored card is shown everywhere except the issue response. */
-export function maskCardNumber(last4: string): string {
-  return `•••• ${last4}`
-}
-
 const TOKEN_ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 function token(random: () => number, length: number): string {
@@ -95,7 +90,11 @@ export const CARD_TRANSITIONS: Record<CardStatus, readonly CardStatus[]> = {
 }
 
 export function isCardStatus(value: unknown): value is CardStatus {
-  return typeof value === "string" && value in CARD_TRANSITIONS
+  // Own keys only: `in` would also accept "toString" and "constructor".
+  return (
+    typeof value === "string" &&
+    (Object.keys(CARD_TRANSITIONS) as string[]).includes(value)
+  )
 }
 
 export function canTransition(from: CardStatus, to: CardStatus): boolean {
@@ -117,9 +116,38 @@ export function transitionStatus(from: CardStatus, to: unknown): TransitionResul
     return { ok: false, error: "A cancelled card cannot change status." }
   }
   if (!canTransition(from, to)) {
-    return { ok: false, error: `A ${from} card cannot become ${to}.` }
+    return { ok: false, error: `Cannot change a card from ${from} to ${to}.` }
   }
   return { ok: true, status: to }
+}
+
+export type CardTransition =
+  | { ok: true; card: Card }
+  | { ok: false; error: string }
+
+/**
+ * Applies a status change to a card: checks it against the state machine, then
+ * returns a copy with the new status and one more entry in its history. The
+ * route calls this and only writes the result back when it is ok.
+ */
+export function applyTransition(
+  card: Card,
+  to: unknown,
+  now: Date = new Date(),
+): CardTransition {
+  const result = transitionStatus(card.status, to)
+  if (!result.ok) return result
+  return {
+    ok: true,
+    card: {
+      ...card,
+      status: result.status,
+      events: [
+        ...card.events,
+        { at: now.toISOString(), from: card.status, to: result.status },
+      ],
+    },
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -229,6 +257,7 @@ export function issueCard(
   const random = options.random ?? Math.random
   const now = options.now ?? new Date()
   const number = generateCardNumber(random)
+  const createdAt = now.toISOString()
 
   return {
     number,
@@ -243,7 +272,8 @@ export function issueCard(
       status: "active",
       category: input.category,
       spent: 0,
-      createdAt: now.toISOString(),
+      createdAt,
+      events: [{ at: createdAt, from: null, to: "active" }],
     },
   }
 }
