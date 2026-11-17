@@ -118,6 +118,12 @@ export function cardById(id: string): Card | null {
   return store.cards.find((card) => card.id === id) ?? null
 }
 
+/** Replaces a stored card with its updated copy, matched by id. */
+export function updateCard(card: Card): void {
+  const index = store.cards.findIndex((existing) => existing.id === card.id)
+  if (index !== -1) store.cards[index] = card
+}
+
 export function refundsForPayment(paymentId: string) {
   return store.refunds.filter((r) => r.paymentId === paymentId)
 }

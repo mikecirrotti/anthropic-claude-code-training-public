@@ -1,5 +1,4 @@
-import { cardById } from "@/data/queries"
-import { store } from "@/data/store"
+import { cardById, updateCard } from "@/data/queries"
 import { applyTransition, isCardStatus } from "@/lib/card"
 import { NextResponse } from "next/server"
 import { errorResponse, readJson } from "../responses"
@@ -22,8 +21,8 @@ export async function GET(_request: Request, { params }: Context) {
  */
 export async function PATCH(request: Request, { params }: Context) {
   const { id } = await params
-  const index = store.cards.findIndex((c) => c.id === id)
-  if (index === -1) return errorResponse(404, "Card not found.")
+  const card = cardById(id)
+  if (!card) return errorResponse(404, "Card not found.")
 
   const parsed = await readJson(request)
   if (!parsed.ok) return errorResponse(400, "Request body must be valid JSON.")
@@ -38,9 +37,9 @@ export async function PATCH(request: Request, { params }: Context) {
     })
   }
 
-  const result = applyTransition(store.cards[index], status)
+  const result = applyTransition(card, status)
   if (!result.ok) return errorResponse(409, result.error)
 
-  store.cards[index] = result.card
+  updateCard(result.card)
   return NextResponse.json({ card: result.card })
 }
